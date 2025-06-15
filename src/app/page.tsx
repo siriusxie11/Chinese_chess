@@ -1,101 +1,55 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useCounterStore } from '@/store/counter'
-import { Minus, Plus, RefreshCcw } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import React from 'react'
+import { DndProvider } from 'react-dnd'
+import { HTML5Backend } from 'react-dnd-html5-backend'
+import { ChessBoard } from '@/components/ChessBoard'
+import { GameControl } from '@/components/GameControl'
+import { GameModeSelector } from '@/components/GameModeSelector'
+import { Toaster } from 'sonner'
 
 /**
  * @description 这只是个示例页面，你可以随意修改这个页面或进行全面重构
  */
-export default function StartTemplatePage() {
-	const { count, increment, decrement, reset } = useCounterStore()
-	const [isLoading, setIsLoading] = useState(true)
-
-	useEffect(() => {
-		// 确保loading至少显示200毫秒
-		const timer = setTimeout(() => {
-			setIsLoading(false)
-		}, 200)
-
-		return () => clearTimeout(timer)
-	}, [])
-
-	const handleIncrement = () => {
-		const success = increment()
-		if (!success) {
-			toast.error('已达到最大值 (10)')
-		}
-	}
-
-	const handleDecrement = () => {
-		const success = decrement()
-		if (!success) {
-			toast.error('已达到最小值 (0)')
-		}
-	}
-
-	const handleReset = () => {
-		reset()
-		toast.success('计数器已重置为 0')
-	}
-
+export default function Home() {
 	return (
-		<main className="flex min-h-screen flex-col items-center justify-center bg-gray-100 p-8">
-			
-			<div className="space-y-8 text-center">
-				<h1 className="font-medium text-2xl text-gray-900">
-
-					初始化模板
-				</h1>
-				
-				<div className="space-y-4">
-					<div className="flex h-16 items-center justify-center font-bold text-4xl text-gray-900">
-						{isLoading ? (
-							<Skeleton className="h-8 w-8 bg-gray-200" />
-						) : (
-							count
-						)}
+		<DndProvider backend={HTML5Backend}>
+			<main className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 p-4">
+				<div className="container mx-auto">
+					{/* 页面标题 */}
+					<div className="text-center mb-8">
+						<h1 className="text-4xl font-bold text-amber-900 mb-2">中国象棋</h1>
+						<p className="text-amber-700">传统中国象棋游戏 - 支持本地对弈、人机对弈和在线对弈</p>
 					</div>
 					
-					<div className="flex justify-center gap-4">
-						<Button 
-							onClick={handleDecrement}
-							variant="outline"
-							disabled={count === 0 || isLoading}
-						>
-							<Minus className="h-4 w-4 text-gray-600" />
-						</Button>
+					{/* 主要内容区域 */}
+					<div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
+						{/* 左侧：游戏模式选择 */}
+						<div className="w-full lg:w-auto">
+							<GameModeSelector />
+						</div>
 						
-						<Button 
-							onClick={handleReset}
-							variant="outline"
-							disabled={isLoading}
-						>
-							<RefreshCcw className="h-4 w-4 text-gray-600" />
-						</Button>
+						{/* 中间：棋盘 */}
+						<div className="flex-shrink-0">
+							<ChessBoard />
+						</div>
 						
-						<Button 
-							onClick={handleIncrement}
-							variant="outline"
-							disabled={count === 10 || isLoading}
-						>
-							<Plus className="h-4 w-4 text-gray-600" />
-						</Button>
+						{/* 右侧：游戏控制 */}
+						<div className="w-full lg:w-auto">
+							<GameControl />
+						</div>
 					</div>
 					
-					<div className="flex flex-col gap-2">
-						<p className="text-gray-600 text-sm">
-							玩玩看 👆 这只是个演示
-						</p>
-						<p className="text-gray-500 text-sm">
-							范围: 0-10 | 自动保存到浏览器本地
-						</p>
+					{/* 页脚信息 */}
+					<div className="text-center mt-12 text-sm text-amber-600">
+						<p>🎯 完整的中国象棋规则实现 | 🤖 智能AI对手 | 🌐 在线对弈功能</p>
+						<p className="mt-2">支持将死、困毙、50回合规则、重复局面等完整规则</p>
 					</div>
 				</div>
-			</div>
-		</main>
+				
+				{/* Toast 通知 */}
+				<Toaster position="top-right" richColors />
+			</main>
+		</DndProvider>
 	)
 }
