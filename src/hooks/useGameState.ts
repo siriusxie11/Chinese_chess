@@ -29,6 +29,10 @@ export interface GameState {
   playerSide: 'red' | 'black' // 玩家执哪方（AI模式下使用）
   isAiThinking: boolean
   
+  // 点击选择模式（触屏设备备用）
+  selectedPosition: [number, number] | null
+  clickMode: boolean // 是否启用点击模式
+  
   // 在线对弈相关
   roomId: string | null
   playerId: string | null
@@ -47,6 +51,11 @@ export interface GameState {
   isCheckmate: (player: 'red' | 'black') => boolean
   isStalemate: (player: 'red' | 'black') => boolean
   checkGameEnd: () => void
+  
+  // 点击选择模式方法
+  selectPosition: (x: number, y: number) => void
+  clearSelection: () => void
+  toggleClickMode: () => void
   
   // 游戏模式方法
   setGameMode: (mode: GameMode) => void
@@ -524,6 +533,10 @@ export const useGameState = create<GameState>()(
       aiDifficulty: 'easy',
       playerSide: 'red',
       isAiThinking: false,
+
+      // 点击选择模式初始状态
+      selectedPosition: null,
+      clickMode: false,
 
       roomId: null,
       playerId: null,
@@ -1034,7 +1047,59 @@ export const useGameState = create<GameState>()(
           opponentId: null,
           isConnected: false
         })
-      }
+      },
+
+      // 点击选择模式方法
+      selectPosition: (x: number, y: number) => {
+        const state = get()
+        const piece = state.isPieceAt(x, y)
+        const selectedPos = state.selectedPosition
+        
+        // 如果没有选中任何棋子，尝试选择当前位置的棋子
+        if (!selectedPos) {
+          if (piece && (
+            (state.currentPlayer === 'red' && isRedPiece(piece)) ||
+            (state.currentPlayer === 'black' && isBlackPiece(piece))
+          )) {
+            // 选择当前玩家的棋子
+            set({ selectedPosition: [x, y] })
+          }
+          return
+        }
+        
+        const [selectedX, selectedY] = selectedPos
+        const selectedPiece = state.isPieceAt(selectedX, selectedY)
+        
+        // 如果点击的是已选中的棋子，取消选择
+        if (selectedX === x && selectedY === y) {
+          set({ selectedPosition: null })
+          return
+        }
+        
+        // 如果点击的是己方另一个棋子，切换选择
+        if (piece && selectedPiece && (
+          (state.currentPlayer === 'red' && isRedPiece(piece)) ||
+          (state.currentPlayer === 'black' && isBlackPiece(piece))
+        )) {
+          set({ selectedPosition: [x, y] })
+          return
+        }
+        
+        // 尝试移动到目标位置
+        if (selectedPiece) {
+          const moveSuccess = state.movePiece([selectedX, selectedY], [x, y])
+          if (moveSuccess) {
+            // 移动成功，清除选择
+            set({ selectedPosition: null })
+          }
+          // 如果移动失败，保持当前选择状态，让用户知道移动无效
+        }
+      },
+      clearSelection: () => set({ selectedPosition: null }),
+      toggleClickMode: () => set((state) => ({ 
+        clickMode: !state.clickMode,
+        selectedPosition: null // 切换模式时清除选择
+      }))
     }),
     {
       name: 'chinese-chess-game',

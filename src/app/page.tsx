@@ -2,18 +2,48 @@
 
 import React from 'react'
 import { DndProvider } from 'react-dnd'
+import { MultiBackend, createTransition } from 'react-dnd-multi-backend'
 import { HTML5Backend } from 'react-dnd-html5-backend'
+import { TouchBackend } from 'react-dnd-touch-backend'
 import { ChessBoard } from '@/components/ChessBoard'
 import { GameControl } from '@/components/GameControl'
 import { GameModeSelector } from '@/components/GameModeSelector'
 import { Toaster } from 'sonner'
+
+// 创建触控转换
+const TouchTransition = createTransition('touchstart', (event: any) => {
+	return event.touches != null
+})
+
+// 创建鼠标转换  
+const MouseTransition = createTransition('mousedown', (event: any) => {
+	return event.touches == null
+})
+
+// 创建自定义的HTML5-to-Touch配置
+const HTML5toTouch = {
+	backends: [
+		{
+			id: 'html5',
+			backend: HTML5Backend,
+			transition: MouseTransition,
+		},
+		{
+			id: 'touch',
+			backend: TouchBackend,
+			options: { enableMouseEvents: true },
+			preview: true,
+			transition: TouchTransition,
+		},
+	],
+}
 
 /**
  * @description 这只是个示例页面，你可以随意修改这个页面或进行全面重构
  */
 export default function Home() {
 	return (
-		<DndProvider backend={HTML5Backend}>
+		<DndProvider backend={MultiBackend} options={HTML5toTouch}>
 			<main className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 p-4">
 				<div className="container mx-auto">
 					{/* 页面标题 */}
@@ -44,6 +74,7 @@ export default function Home() {
 					<div className="text-center mt-12 text-sm text-amber-600">
 						<p>🎯 完整的中国象棋规则实现 | 🤖 智能AI对手 | 🌐 在线对弈功能</p>
 						<p className="mt-2">支持将死、困毙、50回合规则、重复局面等完整规则</p>
+						<p className="mt-1 text-xs text-amber-500">📱 支持触屏设备拖拽操作</p>
 					</div>
 				</div>
 				

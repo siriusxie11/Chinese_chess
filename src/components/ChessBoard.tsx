@@ -5,15 +5,29 @@ import { useDrop } from 'react-dnd'
 import { useGameState, isRedPiece, isBlackPiece } from '@/hooks/useGameState'
 import { ChessPiece } from './ChessPiece'
 import { cn } from '@/lib/utils'
+import { Smartphone } from 'lucide-react'
 
 interface ChessIntersectionProps {
   x: number
   y: number
 }
 
+// 检测是否为触屏设备
+const isTouchDevice = () => {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0
+}
+
 // 单个交叉点组件 - 棋子将放在这里
 const ChessIntersection: React.FC<ChessIntersectionProps> = ({ x, y }) => {
-  const { board, currentPlayer, movePiece, isPieceAt } = useGameState()
+  const { 
+    board, 
+    currentPlayer, 
+    movePiece, 
+    isPieceAt, 
+    selectedPosition, 
+    selectPosition,
+    clickMode 
+  } = useGameState()
   const piece = isPieceAt(x, y)
   
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
@@ -34,15 +48,33 @@ const ChessIntersection: React.FC<ChessIntersectionProps> = ({ x, y }) => {
     (currentPlayer === 'black' && isBlackPiece(piece))
   )
 
+  // 判断是否为选中状态
+  const isSelected = selectedPosition && selectedPosition[0] === x && selectedPosition[1] === y
+
+  // 判断是否为可移动目标
+  const isValidTarget = selectedPosition && !isSelected && 
+    useGameState.getState().isValidMove(selectedPosition, [x, y])
+
+  // 处理点击事件
+  const handleClick = () => {
+    if (clickMode) {
+      selectPosition(x, y)
+    }
+  }
+
   return (
     <div
       ref={drop as any}
+      onClick={handleClick}
       className={cn(
         "absolute flex items-center justify-center",
         "w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14",
         "-translate-x-1/2 -translate-y-1/2 z-10", // 居中到交叉点
+        clickMode && "cursor-pointer",
         isOver && canDrop && "bg-green-200 bg-opacity-70 rounded-full border-2 border-green-500",
-        isOver && !canDrop && "bg-red-200 bg-opacity-70 rounded-full border-2 border-red-500"
+        isOver && !canDrop && "bg-red-200 bg-opacity-70 rounded-full border-2 border-red-500",
+        isSelected && "bg-blue-200 bg-opacity-70 rounded-full border-2 border-blue-500",
+        isValidTarget && "bg-yellow-200 bg-opacity-50 rounded-full border-2 border-yellow-500"
       )}
       style={{
         left: `${(x / 8) * 100}%`,
@@ -54,12 +86,17 @@ const ChessIntersection: React.FC<ChessIntersectionProps> = ({ x, y }) => {
           piece={piece}
           position={[x, y]}
           isCurrentPlayer={!!isCurrentPlayerPiece}
+          isSelected={isSelected}
+          clickMode={clickMode}
         />
       )}
       
       {/* 交叉点标记 - 仅在没有棋子时显示 */}
       {!piece && (
-        <div className="w-2 h-2 bg-amber-800 rounded-full opacity-40"></div>
+        <div className={cn(
+          "w-2 h-2 bg-amber-800 rounded-full opacity-40",
+          isValidTarget && "w-3 h-3 bg-yellow-500 opacity-60"
+        )}></div>
       )}
     </div>
   )
@@ -72,8 +109,17 @@ export const ChessBoard: React.FC = () => {
     playerSide, 
     gameStatus, 
     isAiThinking,
-    makeAIMove 
+    makeAIMove,
+    clickMode,
+    toggleClickMode
   } = useGameState()
+  
+  // 自动检测触屏设备并启用点击模式
+  useEffect(() => {
+    if (isTouchDevice() && !clickMode) {
+      toggleClickMode()
+    }
+  }, [])
   
   // AI自动走棋逻辑
   useEffect(() => {
@@ -94,7 +140,15 @@ export const ChessBoard: React.FC = () => {
     <div className="inline-block p-6 bg-gradient-to-br from-amber-100 to-yellow-100 border-4 border-amber-900 rounded-lg shadow-2xl">
       {/* 棋盘标题 */}
       <div className="text-center mb-4">
-        <h2 className="text-2xl font-bold text-amber-900">中国象棋</h2>
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <h2 className="text-2xl font-bold text-amber-900">中国象棋</h2>
+          {clickMode && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 rounded-md">
+              <Smartphone className="w-4 h-4 text-blue-600" />
+              <span className="text-xs text-blue-600">点击模式</span>
+            </div>
+          )}
+        </div>
         <p className="text-sm text-amber-700">当前回合：
           <span className={cn(
             "font-semibold ml-1",
@@ -103,6 +157,11 @@ export const ChessBoard: React.FC = () => {
             {currentPlayer === 'red' ? '红方' : '黑方'}
           </span>
         </p>
+        {clickMode && (
+          <p className="text-xs text-blue-600 mt-1">
+            点击棋子选择，再点击目标位置移动
+          </p>
+        )}
       </div>
       
       {/* 棋盘主体 - 固定尺寸便于精确定位 */}
@@ -198,7 +257,7 @@ export const ChessBoard: React.FC = () => {
         {/* 棋子交叉点位置 - 90个交叉点 */}
         {Array.from({ length: 10 }, (_, y) =>
           Array.from({ length: 9 }, (_, x) => (
-            <ChessIntersection key={`intersection-${x}-${y}`} x={x} y={y} />
+            <ChessIntersection key={`${x}-${y}`} x={x} y={y} />
           ))
         )}
       </div>
